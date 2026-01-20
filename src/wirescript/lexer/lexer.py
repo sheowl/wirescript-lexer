@@ -22,7 +22,18 @@ class LexerState(Enum):
     STRING = auto()         # Reading inside quotes
     COMMENT = auto()        # Skipping comment text
     OPERATOR = auto()       # resolving generic operators
-    # Add specific operator states here if needed (e.g. OP_GREATER for > vs >>)
+    # Specific Operator Lookahead States
+    OP_GT = auto()          # Saw >
+    OP_LT = auto()          # Saw <
+    OP_PIPE = auto()        # Saw |
+    OP_AMP = auto()         # Saw &
+    OP_EQ = auto()          # Saw =
+    OP_NOT = auto()         # Saw !
+    OP_PLUS = auto()        # Saw +
+    OP_MINUS = auto()       # Saw -
+    OP_MUL = auto()         # Saw *
+    OP_DIV = auto()         # Saw /
+    OP_MOD = auto()         # Saw %
 
 class Lexer:
     """
@@ -80,6 +91,18 @@ class Lexer:
                 token, action = self._handle_start(char)
             elif self.state == LexerState.INDENT_CHECK:
                 token, action = self._handle_indentation(char)
+            # Operator States
+            elif self.state == LexerState.OP_GT: token, action = self._handle_op_gt(char)
+            elif self.state == LexerState.OP_LT: token, action = self._handle_op_lt(char)
+            elif self.state == LexerState.OP_PIPE: token, action = self._handle_op_pipe(char)
+            elif self.state == LexerState.OP_AMP: token, action = self._handle_op_amp(char)
+            elif self.state == LexerState.OP_EQ: token, action = self._handle_op_eq(char)
+            elif self.state == LexerState.OP_NOT: token, action = self._handle_op_not(char)
+            elif self.state == LexerState.OP_PLUS: token, action = self._handle_op_plus(char)
+            elif self.state == LexerState.OP_MINUS: token, action = self._handle_op_minus(char)
+            elif self.state == LexerState.OP_MUL: token, action = self._handle_op_mul(char)
+            elif self.state == LexerState.OP_DIV: token, action = self._handle_op_div(char)
+            elif self.state == LexerState.OP_MOD: token, action = self._handle_op_mod(char)
             # Add other states here as we implement them
             else:
                 raise NotImplementedError(f"State {self.state} not implemented")
@@ -112,9 +135,138 @@ class Lexer:
             self.state = LexerState.INDENT_CHECK
             return Token(TokenType.NEWLINE, line=self.line, column=self.column), Action.CONSUME
             
-        # TODO: Implement rest of logic (Indentation, Identifier, etc.)
+        # Newline Check (Phase 2)
+        if char == '\n':
+            # Emit NEWLINE, switch to INDENT_CHECK
+            self.state = LexerState.INDENT_CHECK
+            return Token(TokenType.NEWLINE, line=self.line, column=self.column), Action.CONSUME
+            
+        # Whitespace (skip)
+        if char in (' ', '\t'):
+            return None, Action.CONSUME
+            
+        # Operators (Phase 3)
+        if char == '>': self.state = LexerState.OP_GT; return None, Action.CONSUME
+        if char == '<': self.state = LexerState.OP_LT; return None, Action.CONSUME
+        if char == '|': self.state = LexerState.OP_PIPE; return None, Action.CONSUME
+        if char == '&': self.state = LexerState.OP_AMP; return None, Action.CONSUME
+        if char == '=': self.state = LexerState.OP_EQ; return None, Action.CONSUME
+        if char == '!': self.state = LexerState.OP_NOT; return None, Action.CONSUME
+        if char == '+': self.state = LexerState.OP_PLUS; return None, Action.CONSUME
+        if char == '-': self.state = LexerState.OP_MINUS; return None, Action.CONSUME
+        if char == '*': self.state = LexerState.OP_MUL; return None, Action.CONSUME
+        if char == '/': self.state = LexerState.OP_DIV; return None, Action.CONSUME
+        if char == '%': self.state = LexerState.OP_MOD; return None, Action.CONSUME
+        if char == '(': return Token(TokenType.LPAREN, line=self.line, column=self.column), Action.CONSUME
+        if char == ')': return Token(TokenType.RPAREN, line=self.line, column=self.column), Action.CONSUME
+        if char == ',': return Token(TokenType.COMMA, line=self.line, column=self.column), Action.CONSUME
+        if char == '.': return Token(TokenType.DOT, line=self.line, column=self.column), Action.CONSUME
+        if char == ':': return Token(TokenType.COLON, line=self.line, column=self.column), Action.CONSUME
+        
+        # TODO: Identifiers/Numbers
         # For now, just skip unknown chars to prevent infinite loop in tests
         return None, Action.CONSUME
+
+    # --- Operator Handlers ---
+    def _handle_op_gt(self, char: str) -> Tuple[Optional[Token], Action]:
+        # Saw '>', next is char
+        if char == '>': # >>
+            self.state = LexerState.START
+            return Token(TokenType.OP_NEST, line=self.line, column=self.column-1), Action.CONSUME
+        if char == '=': # >=
+            self.state = LexerState.START
+            return Token(TokenType.OP_GTE, line=self.line, column=self.column-1), Action.CONSUME
+        # Else >
+        self.state = LexerState.START
+        return Token(TokenType.OP_GT, line=self.line, column=self.column-1), Action.REPROCESS
+
+    def _handle_op_lt(self, char: str) -> Tuple[Optional[Token], Action]:
+        if char == '<': # <<
+            self.state = LexerState.START
+            return Token(TokenType.OP_DEEP_NEST, line=self.line, column=self.column-1), Action.CONSUME
+        if char == '=': # <=
+            self.state = LexerState.START
+            return Token(TokenType.OP_LTE, line=self.line, column=self.column-1), Action.CONSUME
+        self.state = LexerState.START
+        return Token(TokenType.OP_LT, line=self.line, column=self.column-1), Action.REPROCESS
+
+    def _handle_op_pipe(self, char: str) -> Tuple[Optional[Token], Action]:
+        if char == '|': # ||
+            self.state = LexerState.START
+            return Token(TokenType.OP_OR, line=self.line, column=self.column-1), Action.CONSUME
+        self.state = LexerState.START
+        return Token(TokenType.OP_HOR, line=self.line, column=self.column-1), Action.REPROCESS
+
+    def _handle_op_amp(self, char: str) -> Tuple[Optional[Token], Action]:
+        if char == '&': # &&
+            self.state = LexerState.START
+            return Token(TokenType.OP_AND, line=self.line, column=self.column-1), Action.CONSUME
+        # Single & not in basic specific, maybe error or just single token if defined. 
+        # Spec says OP_AND is &&. Does it have Bitwise AND? Spec doesn't say.
+        # Assuming just error or skip for now if single not defined, 
+        # BUT spec doesn't list SINGLE & as operator. 
+        # Let's emit an Error or just Unknown?
+        # Actually, let's treat it as unknown/skip for single, but returning None here loops REPROCESS endlessly if we resets to START?
+        # If we reset to START and REPROCESS, START sees '&' again -> Infinite Loop.
+        # So we MUST consume it if invalid.
+        self.state = LexerState.START
+        # Just return nothing (skip) for invalid single char
+        return None, Action.REPROCESS 
+
+    def _handle_op_eq(self, char: str) -> Tuple[Optional[Token], Action]:
+        if char == '=': # ==
+            self.state = LexerState.START
+            return Token(TokenType.OP_EQ, line=self.line, column=self.column-1), Action.CONSUME
+        self.state = LexerState.START
+        return Token(TokenType.OP_ASSIGN, line=self.line, column=self.column-1), Action.REPROCESS
+
+    def _handle_op_not(self, char: str) -> Tuple[Optional[Token], Action]:
+        if char == '=': # !=
+            self.state = LexerState.START
+            return Token(TokenType.OP_NEQ, line=self.line, column=self.column-1), Action.CONSUME
+        self.state = LexerState.START
+        return Token(TokenType.OP_NOT, line=self.line, column=self.column-1), Action.REPROCESS
+
+    def _handle_op_plus(self, char: str) -> Tuple[Optional[Token], Action]:
+        if char == '+': # ++
+            self.state = LexerState.START
+            return Token(TokenType.OP_INC, line=self.line, column=self.column-1), Action.CONSUME
+        if char == '=': # +=
+            self.state = LexerState.START
+            return Token(TokenType.OP_PLUS_ASSIGN, line=self.line, column=self.column-1), Action.CONSUME
+        self.state = LexerState.START
+        return Token(TokenType.OP_PLUS, line=self.line, column=self.column-1), Action.REPROCESS
+
+    def _handle_op_minus(self, char: str) -> Tuple[Optional[Token], Action]:
+        if char == '-': # --
+            self.state = LexerState.START
+            return Token(TokenType.OP_DEC, line=self.line, column=self.column-1), Action.CONSUME
+        if char == '=': # -=
+            self.state = LexerState.START
+            return Token(TokenType.OP_MINUS_ASSIGN, line=self.line, column=self.column-1), Action.CONSUME
+        self.state = LexerState.START
+        return Token(TokenType.OP_MINUS, line=self.line, column=self.column-1), Action.REPROCESS
+
+    def _handle_op_mul(self, char: str) -> Tuple[Optional[Token], Action]:
+        if char == '=': # *=
+            self.state = LexerState.START
+            return Token(TokenType.OP_MUL_ASSIGN, line=self.line, column=self.column-1), Action.CONSUME
+        self.state = LexerState.START
+        return Token(TokenType.OP_MUL, line=self.line, column=self.column-1), Action.REPROCESS
+
+    def _handle_op_div(self, char: str) -> Tuple[Optional[Token], Action]:
+        if char == '=': # /=
+            self.state = LexerState.START
+            return Token(TokenType.OP_DIV_ASSIGN, line=self.line, column=self.column-1), Action.CONSUME
+        self.state = LexerState.START
+        return Token(TokenType.OP_DIV, line=self.line, column=self.column-1), Action.REPROCESS
+
+    def _handle_op_mod(self, char: str) -> Tuple[Optional[Token], Action]:
+        if char == '=': # %=
+            self.state = LexerState.START
+            return Token(TokenType.OP_MOD_ASSIGN, line=self.line, column=self.column-1), Action.CONSUME
+        self.state = LexerState.START
+        return Token(TokenType.OP_MOD, line=self.line, column=self.column-1), Action.REPROCESS
 
     def _handle_indentation(self, char: str) -> Tuple[Optional[Token], Action]:
         """

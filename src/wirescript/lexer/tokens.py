@@ -72,6 +72,13 @@ class TokenType(Enum):
     OP_INC = auto()      # ++
     OP_DEC = auto()      # --
     OP_ASSIGN = auto()   # =
+
+    # --- Compound Assignment ---
+    OP_PLUS_ASSIGN = auto()  # +=
+    OP_MINUS_ASSIGN = auto() # -=
+    OP_MUL_ASSIGN = auto()   # *=
+    OP_DIV_ASSIGN = auto()   # /=
+    OP_MOD_ASSIGN = auto()   # %=
     
     # --- Punctuators ---
     LPAREN = auto()      # (
