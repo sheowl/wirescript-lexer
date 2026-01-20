@@ -55,7 +55,32 @@ class Lexer:
         # Helper to store calculated indent for the current line
         self.indent_level_found: Optional[int] = None
         
+        # Current token value buffer (for identifiers/strings)
+        self.current_token_value = ""
+        
         self.state = LexerState.START
+        
+        # --- Tables ---
+        self.KEYWORDS = {
+            'start': TokenType.KW_START, 'define': TokenType.KW_DEFINE,
+            'if': TokenType.KW_IF, 'elif': TokenType.KW_ELIF, 'else': TokenType.KW_ELSE,
+            'for': TokenType.KW_FOR, 'foreach': TokenType.KW_FOREACH, 'while': TokenType.KW_WHILE,
+            'break': TokenType.KW_BREAK, 'continue': TokenType.KW_CONTINUE,
+            'return': TokenType.KW_RETURN, 'render': TokenType.KW_RENDER,
+            'import': TokenType.KW_IMPORT, 'export': TokenType.KW_EXPORT
+        }
+        
+        self.RESERVED_WORDS = {
+            'lofi': TokenType.RES_LOFI, 'hifi': TokenType.RES_HIFI,
+            'Screen': TokenType.RES_SCREEN, 'Component': TokenType.RES_COMPONENT, 'Container': TokenType.RES_CONTAINER,
+            'String': TokenType.RES_STRING, 'Int': TokenType.RES_INT, 'Boolean': TokenType.RES_BOOLEAN,
+            'null': TokenType.NULL, 'true': TokenType.BOOLEAN, 'false': TokenType.BOOLEAN
+        }
+        
+        self.NOISE_WORDS = {
+            'create', 'make', 'set', 
+            'add', 'to', 'with', 'containing'
+        }
         
     def peek(self) -> str:
         """Returns the character at current position or '' if EOF."""
@@ -89,6 +114,8 @@ class Lexer:
             # Dispatch to handler based on state
             if self.state == LexerState.START:
                 token, action = self._handle_start(char)
+            elif self.state == LexerState.IDENTIFIER:
+                token, action = self._handle_identifier(char)
             elif self.state == LexerState.INDENT_CHECK:
                 token, action = self._handle_indentation(char)
             # Operator States
@@ -163,9 +190,52 @@ class Lexer:
         if char == '.': return Token(TokenType.DOT, line=self.line, column=self.column), Action.CONSUME
         if char == ':': return Token(TokenType.COLON, line=self.line, column=self.column), Action.CONSUME
         
-        # TODO: Identifiers/Numbers
+        # Identifiers / Keywords / Noise Words
+        if char.isalpha() or char == '_':
+            self.state = LexerState.IDENTIFIER
+            self.current_token_value = char # Start buffer
+            return None, Action.CONSUME
+
+        # TODO: Numbers
         # For now, just skip unknown chars to prevent infinite loop in tests
         return None, Action.CONSUME
+
+    def _handle_identifier(self, char: str) -> Tuple[Optional[Token], Action]:
+        """
+        Handler for LexerState.IDENTIFIER.
+        Accumulates chars until delimiter is hit.
+        Then checks against Keywords/Reserved/Noise.
+        """
+        # Valid ID chars: Letter, Digit, Underscore
+        if char.isalnum() or char == '_':
+            self.current_token_value += char
+            return None, Action.CONSUME
+            
+        # Hit Delimiter (char is NOT part of ID)
+        word = self.current_token_value
+        
+        # 1. Check Keywords
+        if word in self.KEYWORDS:
+            self.state = LexerState.START
+            return Token(self.KEYWORDS[word], value=word, line=self.line, column=self.column - len(word)), Action.REPROCESS
+        
+        # 2. Check Reserved Words
+        if word in self.RESERVED_WORDS:
+            # Special case for true/false mapping to boolean value? 
+            # For now just token type.
+            self.state = LexerState.START
+            return Token(self.RESERVED_WORDS[word], value=word, line=self.line, column=self.column - len(word)), Action.REPROCESS
+            
+        # 3. Check Noise Words
+        if word in self.NOISE_WORDS:
+            # IGNORE. Reset to START, REPROCESS the delimiter.
+            # No token emitted.
+            self.state = LexerState.START
+            return None, Action.REPROCESS
+            
+        # 4. It is an Identifier
+        self.state = LexerState.START
+        return Token(TokenType.IDENTIFIER, value=word, line=self.line, column=self.column - len(word)), Action.REPROCESS
 
     # --- Operator Handlers ---
     def _handle_op_gt(self, char: str) -> Tuple[Optional[Token], Action]:
