@@ -13,6 +13,7 @@ class TokenType(Enum):
     IDENTIFIER = auto()
     STRING = auto()
     INTEGER = auto()
+    FLOAT = auto()
     BOOLEAN = auto()  # true/false
     NULL = auto()
     

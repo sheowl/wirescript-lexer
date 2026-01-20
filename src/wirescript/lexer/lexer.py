@@ -18,9 +18,11 @@ class LexerState(Enum):
     START = auto()          # Default state, looking for any token
     INDENT_CHECK = auto()   # Processing indentation at start of line
     IDENTIFIER = auto()     # Reading letters/numbers (could be keyword, type, or ID)
-    NUMBER = auto()         # Reading digits
-    STRING = auto()         # Reading inside quotes
-    COMMENT = auto()        # Skipping comment text
+    NUMBER = auto()         # Reading digits (int or float)
+    STRING_SINGLE = auto()  # Reading inside ''
+    STRING_DOUBLE = auto()  # Reading inside ""
+    COMMENT_SINGLE = auto() # Skipping single line comment #
+    COMMENT_MULTI = auto()  # Skipping multi line comment """
     OPERATOR = auto()       # resolving generic operators
     # Specific Operator Lookahead States
     OP_GT = auto()          # Saw >
@@ -116,6 +118,12 @@ class Lexer:
                 token, action = self._handle_start(char)
             elif self.state == LexerState.IDENTIFIER:
                 token, action = self._handle_identifier(char)
+            elif self.state == LexerState.NUMBER: token, action = self._handle_number(char)
+            elif self.state == LexerState.STRING_SINGLE: token, action = self._handle_string_single(char)
+            elif self.state == LexerState.STRING_SINGLE: token, action = self._handle_string_single(char)
+            elif self.state == LexerState.STRING_DOUBLE: token, action = self._handle_string_double(char)
+            elif self.state == LexerState.COMMENT_SINGLE: token, action = self._handle_comment_single(char)
+            elif self.state == LexerState.COMMENT_MULTI: token, action = self._handle_comment_multi(char)
             elif self.state == LexerState.INDENT_CHECK:
                 token, action = self._handle_indentation(char)
             # Operator States
@@ -176,6 +184,7 @@ class Lexer:
         if char == '>': self.state = LexerState.OP_GT; return None, Action.CONSUME
         if char == '<': self.state = LexerState.OP_LT; return None, Action.CONSUME
         if char == '|': self.state = LexerState.OP_PIPE; return None, Action.CONSUME
+        if char == '^': return Token(TokenType.OP_VER, line=self.line, column=self.column), Action.CONSUME
         if char == '&': self.state = LexerState.OP_AMP; return None, Action.CONSUME
         if char == '=': self.state = LexerState.OP_EQ; return None, Action.CONSUME
         if char == '!': self.state = LexerState.OP_NOT; return None, Action.CONSUME
@@ -196,8 +205,119 @@ class Lexer:
             self.current_token_value = char # Start buffer
             return None, Action.CONSUME
 
-        # TODO: Numbers
-        # For now, just skip unknown chars to prevent infinite loop in tests
+        # Numbers
+        if char.isdigit():
+            self.state = LexerState.NUMBER
+            self.current_token_value = char
+            return None, Action.CONSUME
+
+        # Strings and Comments
+        if char == '"':
+            # Check for Triple Quote (Lookahead)
+            if self.pos + 1 < len(self.source) and self.source[self.pos:self.pos+2] == '""':
+                # Consuming 3 quotes is tricky with single char lookahead.
+                # But since we are in _handle_start, we can check source directly.
+                # " " " -> 3 chars.
+                # self.peek() returned char at self.pos.
+                # So we are at self.pos.
+                # We need to check self.source[self.pos+1] and [self.pos+2].
+                if self.pos + 2 < len(self.source) and self.source[self.pos+1] == '"' and self.source[self.pos+2] == '"':
+                    # It is """
+                    self.state = LexerState.COMMENT_MULTI
+                    # Advance past the 3 quotes manually?
+                    # self.advance() calls in _handle_start? 
+                    # Action.CONSUME only advances 1.
+                    # We can manually advance 2 more times here.
+                    self.advance() # Eat 2nd "
+                    self.advance() # Eat 3rd "
+                    return None, Action.CONSUME
+            
+            self.state = LexerState.STRING_DOUBLE
+            self.current_token_value = "" # Start empty buffer (don't include quote)
+            return None, Action.CONSUME
+            
+        if char == "'":
+            self.state = LexerState.STRING_SINGLE
+            self.current_token_value = ""
+            return None, Action.CONSUME
+            
+        # Comments (Single Line)
+        if char == '#':
+            self.state = LexerState.COMMENT_SINGLE
+            return None, Action.CONSUME
+
+        # TODO: any other symbols?
+        # For now, just skip unknown chars to prevent infinite loop
+        return None, Action.CONSUME
+
+    # --- Literal Handlers ---
+    def _handle_number(self, char: str) -> Tuple[Optional[Token], Action]:
+        """
+        Consumes digits. Handles optional decimal point for float.
+        """
+        if char.isdigit():
+            self.current_token_value += char
+            return None, Action.CONSUME
+            
+        if char == '.':
+            # Check if we already have a dot
+            if '.' in self.current_token_value:
+                # Two dots? 1.2.3 -> Split? Or Error?
+                # Spec doesn't say. Assuming split at second dot -> REPROCESS.
+                pass # Fall through to reprocess
+            else:
+                self.current_token_value += char
+                return None, Action.CONSUME
+        
+        # End of Number
+        val_str = self.current_token_value
+        self.state = LexerState.START # <--- CRITICAL FIX: Reset state needed before REPROCESS
+        if '.' in val_str:
+            # Float
+            return Token(TokenType.FLOAT, value=float(val_str), line=self.line, column=self.column-len(val_str)), Action.REPROCESS
+        else:
+            return Token(TokenType.INTEGER, value=int(val_str), line=self.line, column=self.column-len(val_str)), Action.REPROCESS
+
+    def _handle_string_double(self, char: str) -> Tuple[Optional[Token], Action]:
+        """
+        Consumes until closing "
+        """
+        if char == '"':
+            # End of string
+            val = self.current_token_value
+            self.state = LexerState.START
+            return Token(TokenType.STRING, value=val, line=self.line, column=self.column-len(val)-2), Action.CONSUME # -2 for quotes
+        
+        if char == '' or char == '\n':
+            # Error: Unclosed string at newline/EOF?
+            # Spec says "Delimit string literals".
+            # Usually strings don't span lines unless special syntax.
+            # Assuming single line strings.
+            # Emit error or partial string?
+            # Let's emit what we have or ERROR token.
+            # For simplicity in Phase 1: Close it?
+            # Or just return token and let parser handle syntax error if needed?
+            # Let's return token.
+            self.state = LexerState.START
+            return Token(TokenType.STRING, value=self.current_token_value, line=self.line, column=self.column), Action.REPROCESS
+
+        self.current_token_value += char
+        return None, Action.CONSUME
+
+    def _handle_string_single(self, char: str) -> Tuple[Optional[Token], Action]:
+        """
+        Consumes until closing '
+        """
+        if char == "'":
+            val = self.current_token_value
+            self.state = LexerState.START
+            return Token(TokenType.STRING, value=val, line=self.line, column=self.column-len(val)-2), Action.CONSUME
+            
+        if char == '' or char == '\n':
+            self.state = LexerState.START
+            return Token(TokenType.STRING, value=self.current_token_value, line=self.line, column=self.column), Action.REPROCESS
+
+        self.current_token_value += char
         return None, Action.CONSUME
 
     def _handle_identifier(self, char: str) -> Tuple[Optional[Token], Action]:
@@ -413,10 +533,43 @@ class Lexer:
             self.state = LexerState.START
             return None, Action.REPROCESS
         
-    def _is_noise_word(self, word: str) -> bool:
+    def _handle_comment_single(self, char: str) -> Tuple[Optional[Token], Action]:
         """
-        Helper to filter out noise words like 'create', 'make'.
-        Returns True if the word should be ignored (no token emitted).
+        Skip until newline.
         """
-        # TODO: Implement Feature 4 (Noise Words)
-        pass
+        if char == '\n':
+            self.state = LexerState.START
+            # We do NOT consume the newline here?
+            # If we consume it, we must emit NEWLINE?
+            # If we REPROCESS it, START sees \n -> Emits NEWLINE.
+            # This preserves standard newline handling.
+            return None, Action.REPROCESS
+            
+        if char == '': # EOF
+            self.state = LexerState.START
+            return None, Action.REPROCESS
+
+        return None, Action.CONSUME
+
+    def _handle_comment_multi(self, char: str) -> Tuple[Optional[Token], Action]:
+        """
+        Skip until \"\"\"
+        """
+        if char == '"':
+            # Check for 3 quotes
+            if self.pos + 1 < len(self.source) and self.source[self.pos:self.pos+2] == '""':
+                 # Wait, current char is quote. 
+                 # We peeked it.
+                 # If we are here, we are consuming chars inside the comment.
+                 # Loop:
+                 # " a b c " " "
+                 # We need to detect """
+                 if self.pos + 2 < len(self.source) and self.source[self.pos+1] == '"' and self.source[self.pos+2] == '"':
+                     # Closing """
+                     self.advance()
+                     self.advance()
+                     self.state = LexerState.START
+                     return None, Action.CONSUME
+        
+        # Consume everything else
+        return None, Action.CONSUME
