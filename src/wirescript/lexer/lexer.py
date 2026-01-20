@@ -41,6 +41,8 @@ class Lexer:
         
         # The indentation stack: starts with 0 (base level)
         self.indent_stack: List[int] = [0]
+        # Helper to store calculated indent for the current line
+        self.indent_level_found: Optional[int] = None
         
         self.state = LexerState.START
         
@@ -76,7 +78,9 @@ class Lexer:
             # Dispatch to handler based on state
             if self.state == LexerState.START:
                 token, action = self._handle_start(char)
-            # Add other states here as we implement them (e.g., INDENT_CHECK)
+            elif self.state == LexerState.INDENT_CHECK:
+                token, action = self._handle_indentation(char)
+            # Add other states here as we implement them
             else:
                 raise NotImplementedError(f"State {self.state} not implemented")
 
@@ -97,7 +101,16 @@ class Lexer:
         """
         # EOF check
         if char == '':
+            if len(self.indent_stack) > 1:
+                self.indent_stack.pop()
+                return Token(TokenType.DEDENT, line=self.line, column=self.column), Action.REPROCESS
             return Token(TokenType.EOF, line=self.line, column=self.column), Action.CONSUME
+
+        # Newline Check (Phase 2)
+        if char == '\n':
+            # Emit NEWLINE, switch to INDENT_CHECK
+            self.state = LexerState.INDENT_CHECK
+            return Token(TokenType.NEWLINE, line=self.line, column=self.column), Action.CONSUME
             
         # TODO: Implement rest of logic (Indentation, Identifier, etc.)
         # For now, just skip unknown chars to prevent infinite loop in tests
@@ -113,8 +126,70 @@ class Lexer:
         - Emit INDENT, DEDENT, or nothing.
         - If DEDENT, we might need to emit multiple tokens (unwind stack).
         """
-        # TODO: Implement Feature 2 (Indentation Logic
-        pass
+        # 1. Count Spaces (if not already done)
+        if self.indent_level_found is None:
+            indent_count = 0
+            curr = char
+            
+            # Consume all spaces/tabs
+            while curr in (' ', '\t'):
+                indent_count += 1
+                self.advance()
+                curr = self.peek()
+            
+            # Check if empty line (newline or EOF or comment?)
+            # If newline, it's an empty line -> ignore indent -> REPROCESS from top to consume it
+            if curr == '\n':
+                # We do NOT consume the newline here?
+                # If we don't, next loop sees \n.
+                # If we are in INDENT_CHECK, and see \n:
+                # We should probably just treat it as another newline to consume?
+                # But _handle_start does that.
+                # So we let REPROCESS handle it, but we must stay in INDENT_CHECK?
+                # Or reset to START and let START find \n?
+                # If we reset to START: START sees \n -> Emits NEWLINE -> INDENT_CHECK.
+                # Result: NEWLINE NEWLINE. This is correct for empty lines.
+                self.state = LexerState.START
+                return None, Action.REPROCESS
+                
+            if curr == '#':
+                # Comment line behaves like empty line
+                # We skip until newline
+                while curr != '\n' and curr != '':
+                    self.advance()
+                    curr = self.peek()
+                self.state = LexerState.START
+                return None, Action.REPROCESS
+
+            if curr == '': 
+                 # EOF after spaces. behave as 0 indent?
+                 indent_count = 0
+
+            self.indent_level_found = indent_count
+            return None, Action.REPROCESS
+
+        # 2. Compare Indent Level
+        current_level = self.indent_level_found
+        top = self.indent_stack[-1]
+
+        if current_level > top:
+            # Indent
+            self.indent_stack.append(current_level)
+            self.indent_level_found = None
+            self.state = LexerState.START
+            return Token(TokenType.INDENT, line=self.line, column=self.column), Action.REPROCESS
+        
+        elif current_level < top:
+            # Dedent
+            self.indent_stack.pop()
+            # Determine if we need more dedents (stay in loop, keep indent_level_found)
+            return Token(TokenType.DEDENT, line=self.line, column=self.column), Action.REPROCESS
+            
+        else:
+            # Equal
+            self.indent_level_found = None
+            self.state = LexerState.START
+            return None, Action.REPROCESS
         
     def _is_noise_word(self, word: str) -> bool:
         """
