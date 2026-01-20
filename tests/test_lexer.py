@@ -22,7 +22,7 @@ def test_lexer_skip_unknown():
     Should consume characters and eventually return EOF 
     (since we haven't implemented other tokens yet).
     """
-    lexer = Lexer("abc")
-    # First call: consumes 'a', returns None internal -> loop -> same for 'b','c' -> EOF
+    lexer = Lexer("???")
+    # First call: consumes '?', returns None internal -> loop -> same for '?' -> EOF
     token = lexer.get_next_token()
     assert token.type == TokenType.EOF
