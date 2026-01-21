@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Logo from './assets/Logo.png';
 import { 
   MoreHorizontal, 
   FileText, 
@@ -11,14 +12,23 @@ import {
   Upload,
   Trash2,
   Zap,
-  Layers
+  Layers,
+  Moon,
+  Sun,
+  Plus,
+  Minus
 } from 'lucide-react';
 
 const LexicalAnalyzerApp = () => {
-  const [inputCode, setInputCode] = useState(`int main() {\n  int x = 10 + 5;\n  return x;\n}`);
+  const [inputCode, setInputCode] = useState(`Screen MainScreen {
+  Int x = 10 + 5;
+  render(hifi);
+}`);
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'code'
   const [tokens, setTokens] = useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [fontSize, setFontSize] = useState(14);
   const dropdownRef = useRef(null);
 
   // Close dropdown when clicking outside
@@ -36,8 +46,8 @@ const LexicalAnalyzerApp = () => {
   const analyzeCode = (text) => {
     if (!text.trim()) return [];
     
-    const keywords = ['int', 'float', 'char', 'double', 'void', 'if', 'else', 'while', 'for', 'return', 'const', 'let', 'var'];
-    const operators = ['+', '-', '*', '/', '=', '==', '<', '>', '<=', '>=', '!', '!=', '&&', '||'];
+    const keywords = ['break', 'continue', 'elif', 'if', 'else', 'while', 'for', 'foreach', 'return', 'define', 'export', 'import', 'render', 'start', 'Boolean', 'Component', 'Container', 'Int', 'String', 'Screen', 'hifi', 'lofi', 'true', 'false', 'null'];
+    const operators = ['<<', '>>', '<=', '>=', '==', '!=', '&&', '||', '+', '-', '*', '/', '%', '=', '<', '>', '!', '|', '^'];
     const symbols = ['(', ')', '{', '}', '[', ']', ';', ',', '.'];
     
     const tokenPatterns = [
@@ -142,9 +152,19 @@ const LexicalAnalyzerApp = () => {
 
   const handleImport = () => {
     const examples = [
-      `void greet() {\n  print("Hello World");\n}`,
-      `int calculate(int a, int b) {\n  return a * b + 10;\n}`,
-      `while (x < 10) {\n  x = x + 1;\n}`
+      `Component Header {
+  render(hifi);
+}`,
+      `Int count = 0;
+while (count < 10) {
+  count = count + 1;
+}`,
+      `Container Panel {
+  Boolean active = true;
+  if (active) {
+    render(lofi);
+  }
+}`
     ];
     const randomExample = examples[Math.floor(Math.random() * examples.length)];
     setInputCode(randomExample);
@@ -152,21 +172,15 @@ const LexicalAnalyzerApp = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 text-slate-900 font-sans">
+    <div className="flex flex-col h-screen bg-[#F5FBE6] text-slate-900 font-sans">
       {/* Header */}
-      <header className="bg-white border-b px-6 py-4 flex justify-between items-center shadow-sm">
+      <header className="bg-[#F5FBE6]/90 backdrop-blur-md px-6 py-2 rounded-b-2xl flex justify-between items-center border-b border-[#FE7F2D]/20 animate-fadeInDown">
         <div className="flex items-center gap-3">
-          <div className="bg-indigo-600 p-2 rounded-lg text-white">
-            <Layers size={20} />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">WireScript</h1>
-            <p className="text-xs text-slate-500 uppercase font-semibold">Lexical Analyzer App</p>
-          </div>
+          <img src={Logo} alt="WireScript Logo" className="h-16 w-auto hover:scale-110 transition-transform duration-300" />
         </div>
-        <div className="hidden md:flex items-center gap-4 text-sm text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
-          <span className="flex items-center gap-1.5 font-medium">
-            <Info size={14} className="text-indigo-500" /> 
+        <div className="hidden md:flex items-center gap-4 text-sm text-[#233D4D] bg-gradient-to-r from-[#F5FBE6] to-[#FE7F2D]/20 px-4 py-2 rounded-full shadow-sm border border-[#FE7F2D]/20 animate-fadeIn" style={{animationDelay: '0.2s'}}>
+          <span className="flex items-center gap-1.5 font-semibold">
+            <Info size={14} className="text-[#FE7F2D]" /> 
             Process: Line-by-Line Tokenization
           </span>
         </div>
@@ -176,32 +190,32 @@ const LexicalAnalyzerApp = () => {
       <main className="flex flex-1 overflow-hidden p-6 gap-6">
         
         {/* Input Section */}
-        <section className="flex-1 flex flex-col bg-white rounded-xl border shadow-sm overflow-hidden">
-          <div className="bg-slate-100 px-4 py-2 border-b flex justify-between items-center">
-            <span className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
-              <Code size={14} /> Source Editor
+        <section className="flex-1 flex flex-col bg-white/70 backdrop-blur-md rounded-xl border border-[#FE7F2D]/30 shadow-xl shadow-[#FE7F2D]/10 overflow-hidden animate-slideInLeft">
+          <div className="bg-gradient-to-r from-[#F5FBE6] to-[#FE7F2D]/20 px-4 py-2 border-b border-[#FE7F2D]/30 flex justify-between items-center">
+            <span className="text-xs font-bold text-[#233D4D] uppercase flex items-center gap-2">
+              <Code size={14} className="text-[#FE7F2D]" /> Source Editor
             </span>
             <div className="relative" ref={dropdownRef}>
               <button 
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="p-1 hover:bg-slate-200 rounded-md transition-colors"
+                className="p-1.5 hover:bg-[#FE7F2D]/20 rounded-lg transition-colors text-[#FE7F2D]"
               >
                 <MoreHorizontal size={18} />
               </button>
               
               {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-xl z-10 py-1">
+                <div className="absolute right-0 mt-2 w-48 bg-white/95 backdrop-blur-md border border-[#FE7F2D]/30 rounded-lg shadow-xl shadow-[#FE7F2D]/20 z-10 py-1 animate-fadeInDown">
                   <button 
                     onClick={handleSave}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 flex items-center gap-2"
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-[#FE7F2D]/10 flex items-center gap-2 transition-all"
                   >
-                    <Save size={16} /> Save input
+                    <Save size={16} className="text-[#FE7F2D]" /> Save input
                   </button>
                   <button 
                     onClick={handleImport}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 flex items-center gap-2"
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-[#FE7F2D]/10 flex items-center gap-2 transition-all"
                   >
-                    <Upload size={16} /> Import input
+                    <Upload size={16} className="text-[#FE7F2D]" /> Import input
                   </button>
                 </div>
               )}
@@ -209,7 +223,7 @@ const LexicalAnalyzerApp = () => {
           </div>
           <div className="flex-1 relative font-mono text-sm">
              {/* Line Numbers Overlay */}
-             <div className="absolute left-0 top-0 w-12 h-full bg-slate-50 border-r border-slate-200 flex flex-col pt-6 items-center text-slate-300 pointer-events-none select-none">
+             <div className="absolute left-0 top-0 w-12 h-full bg-gradient-to-r from-[#F5FBE6]/80 to-[#FE7F2D]/10 border-r border-[#FE7F2D]/30 flex flex-col pt-6 items-center text-[#FE7F2D]/60 pointer-events-none select-none">
                 {inputCode.split('\n').map((_, i) => (
                   <div key={i} className="leading-relaxed">{i + 1}</div>
                 ))}
@@ -223,16 +237,16 @@ const LexicalAnalyzerApp = () => {
             />
           </div>
           
-          <div className="bg-slate-50 border-t p-3 flex gap-3">
+          <div className="bg-gradient-to-r from-[#F5FBE6] to-[#FE7F2D]/20 border-t border-[#FE7F2D]/30 p-3 flex gap-3">
             <button 
               onClick={handleRun}
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98]"
+              className="flex-1 bg-gradient-to-r from-[#FE7F2D] to-[#D96C1F] hover:from-[#FE7F2D]/90 hover:to-[#D96C1F]/90 text-white font-bold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-[#FE7F2D]/40 active:scale-[0.98] hover:scale-[1.02] hover:shadow-xl hover:shadow-[#FE7F2D]/50"
             >
-              <Zap size={18} fill="currentColor" /> Run Analysis
+              <Zap size={18} fill="currentColor" className="animate-pulse" /> Run Analysis
             </button>
             <button 
               onClick={handleClear}
-              className="bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 font-bold py-2.5 px-6 rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm"
+              className="bg-white/80 hover:bg-gradient-to-r hover:from-red-50 hover:to-rose-50 text-slate-600 hover:text-red-600 border border-[#FE7F2D]/30 hover:border-red-200 font-bold py-2.5 px-6 rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm hover:scale-105"
             >
               <Trash2 size={18} /> Clear
             </button>
@@ -240,55 +254,55 @@ const LexicalAnalyzerApp = () => {
         </section>
 
         {/* Output Section */}
-        <section className="flex-1 flex flex-col bg-white rounded-xl border shadow-sm overflow-hidden">
-          <div className="bg-slate-100 px-4 py-2 border-b flex justify-between items-center">
-            <span className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
-              <FileText size={14} /> Output Results
+        <section className="flex-1 flex flex-col bg-white/70 backdrop-blur-md rounded-xl border border-[#FE7F2D]/30 shadow-xl shadow-[#FE7F2D]/10 overflow-hidden animate-slideInRight">
+          <div className="bg-gradient-to-r from-[#FE7F2D]/20 to-[#F5FBE6] px-4 py-2 border-b border-[#FE7F2D]/30 flex justify-between items-center">
+            <span className="text-xs font-bold text-[#233D4D] uppercase flex items-center gap-2">
+              <FileText size={14} className="text-[#FE7F2D]" /> Output Results
             </span>
-            <div className="flex bg-white rounded-md p-1 border shadow-sm">
+            <div className="flex bg-white/90 rounded-lg p-1 border border-[#FE7F2D]/30 shadow-sm">
               <button 
                 onClick={() => setViewMode('table')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-sm text-xs font-medium transition-all ${viewMode === 'table' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${viewMode === 'table' ? 'bg-gradient-to-r from-[#FE7F2D] to-[#D96C1F] text-white shadow-md shadow-[#FE7F2D]/40' : 'text-slate-500 hover:bg-[#FE7F2D]/10'}`}
               >
                 <Table size={14} /> Table View
               </button>
               <button 
                 onClick={() => setViewMode('code')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-sm text-xs font-medium transition-all ${viewMode === 'code' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${viewMode === 'code' ? 'bg-gradient-to-r from-[#FE7F2D] to-[#D96C1F] text-white shadow-md shadow-[#FE7F2D]/40' : 'text-slate-500 hover:bg-[#FE7F2D]/10'}`}
               >
                 <Code size={14} /> Code Block
               </button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-auto bg-white">
+          <div className="flex-1 overflow-auto bg-[#F5FBE6]/30">
             {tokens.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3 opacity-60">
-                <Play size={48} className="text-slate-200" />
-                <p className="text-sm font-medium">Click "Run Analysis" to view results</p>
+              <div className="h-full flex flex-col items-center justify-center text-[#FE7F2D]/50 gap-3 opacity-60">
+                <Play size={48} className="text-[#FE7F2D]/30 animate-bounce" />
+                <p className="text-sm font-medium animate-pulse">Click "Run Analysis" to view results</p>
               </div>
             ) : viewMode === 'table' ? (
               <table className="w-full text-left border-collapse">
-                <thead className="sticky top-0 bg-slate-50 z-10">
-                  <tr className="text-[10px] uppercase text-slate-500 font-black border-b tracking-widest">
-                    <th className="py-3 px-4 border-r border-slate-100 w-16 text-center">Line</th>
-                    <th className="py-3 px-4 border-r border-slate-100">Token</th>
-                    <th className="py-3 px-4 border-r border-slate-100">Attribute</th>
+                <thead className="sticky top-0 bg-gradient-to-r from-[#F5FBE6] to-[#FE7F2D]/20 z-10">
+                  <tr className="text-[10px] uppercase text-[#233D4D] font-black border-b border-[#FE7F2D]/30 tracking-widest">
+                    <th className="py-3 px-4 border-r border-[#FE7F2D]/20 w-16 text-center">Line</th>
+                    <th className="py-3 px-4 border-r border-[#FE7F2D]/20">Token</th>
+                    <th className="py-3 px-4 border-r border-[#FE7F2D]/20">Attribute</th>
                     <th className="py-3 px-4">Description</th>
                   </tr>
                 </thead>
                 <tbody>
                   {tokens.map((token, idx) => (
-                    <tr key={idx} className="border-b border-slate-50 hover:bg-indigo-50/30 transition-colors group">
-                      <td className="py-3 px-4 text-center font-mono text-xs text-slate-400 border-r border-slate-100">
+                    <tr key={idx} className="border-b border-[#FE7F2D]/20 hover:bg-[#FE7F2D]/10 transition-all duration-200 group animate-fadeInUp" style={{animationDelay: `${idx * 0.02}s`}}>
+                      <td className="py-3 px-4 text-center font-mono text-xs text-[#FE7F2D]/60 border-r border-[#FE7F2D]/20">
                         {token.line}
                       </td>
-                      <td className="py-3 px-4 font-mono text-sm border-r border-slate-100">
-                        <span className="bg-slate-100 group-hover:bg-white px-2 py-0.5 rounded text-indigo-700 font-bold border border-slate-200">
+                      <td className="py-3 px-4 font-mono text-sm border-r border-[#FE7F2D]/20">
+                        <span className="bg-white/80 group-hover:bg-white px-2 py-0.5 rounded text-[#233D4D] font-bold border border-[#FE7F2D]/30 shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:shadow-md">
                           {token.lexeme}
                         </span>
                       </td>
-                      <td className="py-3 px-4 border-r border-slate-100">
+                      <td className="py-3 px-4 border-r border-[#FE7F2D]/20">
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${getAttributeStyle(token.attribute)}`}>
                           {token.attribute}
                         </span>
@@ -302,15 +316,15 @@ const LexicalAnalyzerApp = () => {
               </table>
             ) : (
               <div className="p-6">
-                 <div className="bg-slate-900 rounded-xl p-6 font-mono text-sm leading-relaxed text-slate-300 shadow-inner">
+                 <div className="bg-[#233D4D] rounded-xl p-6 font-mono text-sm leading-relaxed text-slate-300 shadow-xl shadow-[#233D4D]/50 border border-[#FE7F2D]/30">
                   {tokens.map((token, idx) => (
-                    <div key={idx} className="flex gap-4 mb-2 group hover:bg-slate-800/50 p-1 rounded transition-colors">
-                      <span className="text-slate-600 w-8 text-right select-none text-xs">L{token.line}</span>
+                    <div key={idx} className="flex gap-4 mb-2 group hover:bg-[#FE7F2D]/10 p-1 rounded transition-colors">
+                      <span className="text-[#FE7F2D]/60 w-8 text-right select-none text-xs">L{token.line}</span>
                       <div className="flex items-center gap-3">
                         <span className={`font-bold ${getAttributeColor(token.attribute)}`}>
                           &lt;{token.attribute}&gt;
                         </span>
-                        <span className="text-white">"{token.lexeme}"</span>
+                        <span className="text-slate-100">"{token.lexeme}"</span>
                       </div>
                     </div>
                   ))}
@@ -320,13 +334,13 @@ const LexicalAnalyzerApp = () => {
           </div>
 
           {/* Result Context Bar */}
-          <div className="bg-slate-100 border-t px-4 py-2 flex justify-between items-center text-[10px] text-slate-500 uppercase font-black tracking-tighter">
+          <div className="bg-gradient-to-r from-[#FE7F2D]/20 to-[#F5FBE6] border-t border-[#FE7F2D]/30 px-4 py-2 flex justify-between items-center text-[10px] text-[#233D4D] uppercase font-black tracking-tighter">
             <div className="flex gap-4">
               <span>Total Tokens: {tokens.length}</span>
               <span>Unique Lines: {new Set(tokens.map(t => t.line)).size}</span>
             </div>
             <span className="flex items-center gap-1">
-              <span className={`w-1.5 h-1.5 rounded-full ${tokens.length > 0 ? 'bg-green-500' : 'bg-slate-400'}`}></span>
+              <span className={`w-1.5 h-1.5 rounded-full ${tokens.length > 0 ? 'bg-emerald-500 shadow-sm shadow-emerald-300' : 'bg-[#FE7F2D]/40'}`}></span>
               Status: {tokens.length > 0 ? 'Analysis Complete' : 'Idle'}
             </span>
           </div>
@@ -334,8 +348,29 @@ const LexicalAnalyzerApp = () => {
       </main>
 
       {/* Main Footer */}
-      <footer className="bg-white border-t py-4 px-6 flex justify-center items-center text-slate-400">
-        <p className="text-xs font-medium">Group 4 and then all rights reserved</p>
+      <footer className="bg-[#F5FBE6]/90 backdrop-blur-md py-3 px-6 rounded-t-3xl border-t border-[#FE7F2D]/20 animate-fadeInUp">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+          {/* Left: Project Info */}
+          <div className="text-center md:text-left -ml-32">
+            <h2 className="text-2xl font-bold text-[#233D4D]">WireScript</h2>
+            <p className="text-md text-[#FE7F2D] font-medium">Domain-Specific Language (DSL) for Unified UI/UX Design</p>
+            <p className="text-md text-[#FE7F2D] font-medium">COSC 303: Principles of Programming Languages</p>
+          </div>
+          
+          {/* Right: Team Members */}
+          <div className="text-center md:text-right -mr-32">
+            <p className="text-[16px] font-bold text-[#233D4D] uppercase mb-2">Team Members</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-sm text-[#FE7F2D]">
+              <p>Bacolor, James Clark C.</p>
+              <p>Guarin, Pauline</p>
+              <p>Gueco, Jasper King</p>
+              <p>Nadonga, Solomon</p>
+              <p>Rosel, Cassandra</p>
+              <p>Soriano, Shouma King</p>
+              <p>Tagum, Anisha Shen</p>
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
   );
@@ -343,27 +378,27 @@ const LexicalAnalyzerApp = () => {
 
 const getAttributeStyle = (attr) => {
   switch (attr) {
-    case 'Keyword': return 'bg-purple-50 text-purple-700 border-purple-200';
-    case 'Identifier': return 'bg-blue-50 text-blue-700 border-blue-200';
-    case 'Number': return 'bg-amber-50 text-amber-700 border-amber-200';
-    case 'Operator': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    case 'Symbol': return 'bg-slate-100 text-slate-700 border-slate-200';
-    case 'String': return 'bg-rose-50 text-rose-700 border-rose-200';
-    case 'Error': return 'bg-red-50 text-red-700 border-red-200';
-    default: return 'bg-slate-50 text-slate-600 border-slate-100';
+    case 'Keyword': return 'bg-[#FE7F2D]/20 text-[#233D4D] border-[#FE7F2D] shadow-sm font-semibold';
+    case 'Identifier': return 'bg-amber-100 text-amber-800 border-amber-300 shadow-sm';
+    case 'Number': return 'bg-orange-100 text-orange-800 border-orange-300 shadow-sm';
+    case 'Operator': return 'bg-[#233D4D]/10 text-[#233D4D] border-[#233D4D]/30 shadow-sm';
+    case 'Symbol': return 'bg-slate-100 text-slate-700 border-slate-300 shadow-sm';
+    case 'String': return 'bg-yellow-100 text-yellow-800 border-yellow-300 shadow-sm';
+    case 'Error': return 'bg-red-100 text-red-700 border-red-300 shadow-sm';
+    default: return 'bg-[#F5FBE6] text-[#233D4D] border-[#FE7F2D]/30 shadow-sm';
   }
 };
 
 const getAttributeColor = (attr) => {
   switch (attr) {
-    case 'Keyword': return 'text-purple-400';
-    case 'Identifier': return 'text-blue-400';
-    case 'Number': return 'text-amber-400';
-    case 'Operator': return 'text-emerald-400';
+    case 'Keyword': return 'text-[#FE7F2D]';
+    case 'Identifier': return 'text-amber-400';
+    case 'Number': return 'text-orange-400';
+    case 'Operator': return 'text-[#F5FBE6]';
     case 'Symbol': return 'text-slate-400';
-    case 'String': return 'text-rose-400';
+    case 'String': return 'text-yellow-400';
     case 'Error': return 'text-red-400';
-    default: return 'text-slate-500';
+    default: return 'text-[#FE7F2D]/60';
   }
 };
 
