@@ -70,6 +70,21 @@ const LexicalAnalyzerApp = () => {
       }
   };
 
+  // Static Symbol Map
+  const TOKEN_SYMBOLS = {
+    'LPAREN': '(', 'RPAREN': ')',
+    'LBRACE': '{', 'RBRACE': '}',
+    'COMMA': ',', 'DOT': '.', 'COLON': ':',
+    'OP_PLUS': '+', 'OP_MINUS': '-', 'OP_MUL': '*', 'OP_DIV': '/', 'OP_MOD': '%',
+    'OP_ASSIGN': '=', 'OP_EQ': '==', 'OP_NEQ': '!=',
+    'OP_LT': '<', 'OP_GT': '>', 'OP_LTE': '<=', 'OP_GTE': '>=',
+    'OP_AND': '&&', 'OP_OR': '||', 'OP_NOT': '!',
+    'OP_INC': '++', 'OP_DEC': '--',
+    'OP_PLUS_ASSIGN': '+=', 'OP_MINUS_ASSIGN': '-=',
+    'OP_MUL_ASSIGN': '*=', 'OP_DIV_ASSIGN': '/=', 'OP_MOD_ASSIGN': '%=',
+    'OP_HOR': '|', 'OP_VER': '^', 'OP_NEST': '>>', 'OP_DEEP_NEST': '<<'
+  };
+
   const analyzeCode = async (text) => {
     try {
         const response = await fetch('/tokenize', {
@@ -87,13 +102,27 @@ const LexicalAnalyzerApp = () => {
 
         const backendTokens = await response.json();
         
-        return backendTokens.map(t => ({
-            line: t.line,
-            lexeme: t.value === null ? `<${t.type}>` : String(t.value),
-            tokenType: t.type,
-            attribute: mapTokenType(t.type),
-            description: mapTokenDescription(t.type, t.value)
-        }));
+        return backendTokens.map(t => {
+            // Determine display lexeme
+            let displayLexeme = t.value;
+            if (displayLexeme === null) {
+                // Check if we have a symbol mapping
+                if (TOKEN_SYMBOLS[t.type]) {
+                    displayLexeme = TOKEN_SYMBOLS[t.type];
+                } else {
+                    // Fallback to <TYPE> for Whitespace/EOF
+                    displayLexeme = `<${t.type}>`;
+                }
+            }
+
+            return {
+                line: t.line,
+                lexeme: String(displayLexeme),
+                tokenType: t.type,
+                attribute: mapTokenType(t.type),
+                description: mapTokenDescription(t.type, t.value)
+            };
+        });
 
     } catch (err) {
         console.error("API Error:", err);

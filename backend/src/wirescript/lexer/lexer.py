@@ -169,17 +169,12 @@ class Lexer:
             self.state = LexerState.INDENT_CHECK
             return Token(TokenType.NEWLINE, line=self.line, column=self.column), Action.CONSUME
             
-        # Newline Check (Phase 2)
-        if char == '\n':
-            # Emit NEWLINE, switch to INDENT_CHECK
-            self.state = LexerState.INDENT_CHECK
-            return Token(TokenType.NEWLINE, line=self.line, column=self.column), Action.CONSUME
-            
+
         # Whitespace (skip)
         if char in (' ', '\t', '\r'):
             return None, Action.CONSUME
             
-        # Operators (Phase 3)
+        # Operators
         if char == '>': self.state = LexerState.OP_GT; return None, Action.CONSUME
         if char == '<': self.state = LexerState.OP_LT; return None, Action.CONSUME
         if char == '|': self.state = LexerState.OP_PIPE; return None, Action.CONSUME
@@ -216,21 +211,12 @@ class Lexer:
         if char == '"':
             # Check for Triple Quote (Lookahead)
             if self.pos + 1 < len(self.source) and self.source[self.pos:self.pos+2] == '""':
-                # Consuming 3 quotes is tricky with single char lookahead.
-                # But since we are in _handle_start, we can check source directly.
-                # " " " -> 3 chars.
-                # self.peek() returned char at self.pos.
-                # So we are at self.pos.
-                # We need to check self.source[self.pos+1] and [self.pos+2].
                 if self.pos + 2 < len(self.source) and self.source[self.pos+1] == '"' and self.source[self.pos+2] == '"':
                     # It is """
                     self.state = LexerState.COMMENT_MULTI
-                    # Advance past the 3 quotes manually?
-                    # self.advance() calls in _handle_start? 
-                    # Action.CONSUME only advances 1.
-                    # We can manually advance 2 more times here.
-                    self.advance() # Eat 2nd "
-                    self.advance() # Eat 3rd "
+                    # Consume the other two quotes manually
+                    self.advance() 
+                    self.advance()
                     return None, Action.CONSUME
             
             self.state = LexerState.STRING_DOUBLE
@@ -384,16 +370,9 @@ class Lexer:
         if char == '&': # &&
             self.state = LexerState.START
             return Token(TokenType.OP_AND, line=self.line, column=self.column-1), Action.CONSUME
-        # Single & not in basic specific, maybe error or just single token if defined. 
-        # Spec says OP_AND is &&. Does it have Bitwise AND? Spec doesn't say.
-        # Assuming just error or skip for now if single not defined, 
-        # BUT spec doesn't list SINGLE & as operator. 
-        # Let's emit an Error or just Unknown?
-        # Actually, let's treat it as unknown/skip for single, but returning None here loops REPROCESS endlessly if we resets to START?
-        # If we reset to START and REPROCESS, START sees '&' again -> Infinite Loop.
-        # So we MUST consume it if invalid.
+            
+        # Single & is not a valid operator in WireScript
         self.state = LexerState.START
-        # Just return nothing (skip) for invalid single char
         return None, Action.REPROCESS 
 
     def _handle_op_eq(self, char: str) -> Tuple[Optional[Token], Action]:
@@ -475,16 +454,9 @@ class Lexer:
             # Check if empty line (newline or EOF or comment?)
             # If newline, it's an empty line -> ignore indent -> REPROCESS from top to consume it
             if curr == '\n':
-                # We do NOT consume the newline here?
-                # If we don't, next loop sees \n.
-                # If we are in INDENT_CHECK, and see \n:
-                # We should probably just treat it as another newline to consume?
-                # But _handle_start does that.
-                # So we let REPROCESS handle it, but we must stay in INDENT_CHECK?
-                # Or reset to START and let START find \n?
-                # If we reset to START: START sees \n -> Emits NEWLINE -> INDENT_CHECK.
-                # Result: NEWLINE NEWLINE. This is correct for empty lines.
+                # Empty line; reset to START to let main loop handle the newline
                 self.state = LexerState.START
+                return None, Action.REPROCESS
                 return None, Action.REPROCESS
                 
             if curr == '#':
@@ -532,10 +504,7 @@ class Lexer:
         """
         if char == '\n':
             self.state = LexerState.START
-            # We do NOT consume the newline here?
-            # If we consume it, we must emit NEWLINE?
-            # If we REPROCESS it, START sees \n -> Emits NEWLINE.
-            # This preserves standard newline handling.
+            # Reprocess newline so it is handled by START state
             return None, Action.REPROCESS
             
         if char == '': # EOF
@@ -551,12 +520,7 @@ class Lexer:
         if char == '"':
             # Check for 3 quotes
             if self.pos + 1 < len(self.source) and self.source[self.pos:self.pos+2] == '""':
-                 # Wait, current char is quote. 
-                 # We peeked it.
-                 # If we are here, we are consuming chars inside the comment.
-                 # Loop:
-                 # " a b c " " "
-                 # We need to detect """
+                 # Check manually for strict triple quote match
                  if self.pos + 2 < len(self.source) and self.source[self.pos+1] == '"' and self.source[self.pos+2] == '"':
                      # Closing """
                      self.advance()
