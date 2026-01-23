@@ -17,12 +17,8 @@ def test_lexer_empty_eof():
     assert token.type == TokenType.EOF
 
 def test_lexer_skip_unknown():
-    """
-    Feature 1 placeholder behavior: 
-    Should consume characters and eventually return EOF 
-    (since we haven't implemented other tokens yet).
-    """
+    """Test that unknown characters emit ERROR tokens."""
     lexer = Lexer("???")
-    # First call: consumes '?', returns None internal -> loop -> same for '?' -> EOF
     token = lexer.get_next_token()
-    assert token.type == TokenType.EOF
+    assert token.type == TokenType.ERROR
+    assert token.value == "Unexpected character '?'"
