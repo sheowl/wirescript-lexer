@@ -8,6 +8,7 @@ class TokenType(Enum):
     NEWLINE = auto()
     INDENT = auto()
     DEDENT = auto()
+    ERROR = auto()
     
     # --- Identifiers & Literals ---
     IDENTIFIER = auto()

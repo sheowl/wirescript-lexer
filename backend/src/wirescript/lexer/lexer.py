@@ -247,8 +247,8 @@ class Lexer:
             return None, Action.CONSUME
 
         # TODO: any other symbols?
-        # For now, just skip unknown chars to prevent infinite loop
-        return None, Action.CONSUME
+        # Detect unknown characters
+        return Token(TokenType.ERROR, value=f"Unexpected character '{char}'", line=self.line, column=self.column), Action.CONSUME
 
     # --- Literal Handlers ---
     def _handle_number(self, char: str) -> Tuple[Optional[Token], Action]:
@@ -289,17 +289,9 @@ class Lexer:
             return Token(TokenType.STRING, value=val, line=self.line, column=self.column-len(val)-2), Action.CONSUME # -2 for quotes
         
         if char == '' or char == '\n':
-            # Error: Unclosed string at newline/EOF?
-            # Spec says "Delimit string literals".
-            # Usually strings don't span lines unless special syntax.
-            # Assuming single line strings.
-            # Emit error or partial string?
-            # Let's emit what we have or ERROR token.
-            # For simplicity in Phase 1: Close it?
-            # Or just return token and let parser handle syntax error if needed?
-            # Let's return token.
+            # Error: Unclosed string at newline/EOF
             self.state = LexerState.START
-            return Token(TokenType.STRING, value=self.current_token_value, line=self.line, column=self.column), Action.REPROCESS
+            return Token(TokenType.ERROR, value="Unterminated string literal", line=self.line, column=self.column), Action.REPROCESS
 
         self.current_token_value += char
         return None, Action.CONSUME
@@ -315,7 +307,7 @@ class Lexer:
             
         if char == '' or char == '\n':
             self.state = LexerState.START
-            return Token(TokenType.STRING, value=self.current_token_value, line=self.line, column=self.column), Action.REPROCESS
+            return Token(TokenType.ERROR, value="Unterminated string literal", line=self.line, column=self.column), Action.REPROCESS
 
         self.current_token_value += char
         return None, Action.CONSUME
@@ -571,5 +563,10 @@ class Lexer:
                      self.state = LexerState.START
                      return None, Action.CONSUME
         
+        # EOF Case
+        if char == '':
+             self.state = LexerState.START
+             return Token(TokenType.ERROR, value="Unterminated multi-line comment", line=self.line, column=self.column), Action.CONSUME
+
         # Consume everything else
         return None, Action.CONSUME

@@ -28,7 +28,7 @@ htmlcov/
 Thumbs.db
 
 # Docs
-/docs
+docs/
 
 # Logs
 logs
