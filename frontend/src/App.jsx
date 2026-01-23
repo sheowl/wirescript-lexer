@@ -90,9 +90,9 @@ const LexicalAnalyzerApp = () => {
         return backendTokens.map(t => ({
             line: t.line,
             lexeme: t.value === null ? `<${t.type}>` : String(t.value),
+            tokenType: t.type,
             attribute: mapTokenType(t.type),
-            description: mapTokenDescription(t.type, t.value),
-            rawType: t.type
+            description: mapTokenDescription(t.type, t.value)
         }));
 
     } catch (err) {
@@ -100,6 +100,7 @@ const LexicalAnalyzerApp = () => {
         return [{
             line: 0,
             lexeme: "API ERROR",
+            tokenType: "ERROR",
             attribute: "Error",
             description: String(err)
         }];
@@ -302,12 +303,13 @@ const LexicalAnalyzerApp = () => {
                     {viewMode === 'table' && (
                         <table className="w-full text-left border-collapse">
                             <thead className="sticky top-0 bg-gradient-to-r from-[#F5FBE6] to-[#FE7F2D]/20 z-10">
-                            <tr className="text-[10px] uppercase text-[#233D4D] font-black border-b border-[#FE7F2D]/30 tracking-widest">
+                              <tr className="text-[10px] uppercase text-[#233D4D] font-black border-b border-[#FE7F2D]/30 tracking-widest">
                                 <th className="py-3 px-4 border-r border-[#FE7F2D]/20 w-16 text-center">Line</th>
+                                <th className="py-3 px-4 border-r border-[#FE7F2D]/20">Lexeme</th>
                                 <th className="py-3 px-4 border-r border-[#FE7F2D]/20">Token</th>
                                 <th className="py-3 px-4 border-r border-[#FE7F2D]/20">Attribute</th>
                                 <th className="py-3 px-4">Description</th>
-                            </tr>
+                              </tr>
                             </thead>
                             <tbody>
                             {tokens.map((token, idx) => (
@@ -319,6 +321,9 @@ const LexicalAnalyzerApp = () => {
                                     <span className="bg-white/80 group-hover:bg-white px-2 py-0.5 rounded text-[#233D4D] font-bold border border-[#FE7F2D]/30 shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:shadow-md">
                                     {token.lexeme}
                                     </span>
+                                </td>
+                                <td className="py-3 px-4 font-mono text-xs text-slate-500 border-r border-[#FE7F2D]/20">
+                                    {token.tokenType}
                                 </td>
                                 <td className="py-3 px-4 border-r border-[#FE7F2D]/20">
                                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${getAttributeStyle(token.attribute)}`}>
@@ -342,6 +347,9 @@ const LexicalAnalyzerApp = () => {
                                 <div key={idx} className="flex gap-4 mb-2 group hover:bg-[#FE7F2D]/10 p-1 rounded transition-colors">
                                 <span className="text-[#FE7F2D]/60 w-8 text-right select-none text-xs">L{token.line}</span>
                                 <div className="flex items-center gap-3">
+                                    <span className="text-slate-400 text-xs font-bold w-32 border-r border-slate-600/50 mr-2">
+                                        {token.tokenType}
+                                    </span>
                                     <span className={`font-bold ${getAttributeColor(token.attribute)}`}>
                                     &lt;{token.attribute}&gt;
                                     </span>
