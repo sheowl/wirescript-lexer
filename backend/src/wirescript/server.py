@@ -9,7 +9,8 @@ app = FastAPI(title="WireScript Lexer API")
 
 # Allow CORS for Frontend integration
 import os
-origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+origins_str = os.getenv("ALLOWED_ORIGINS", "")
+origins = [origin.strip() for origin in origins_str.split(",") if origin.strip()]
 
 app.add_middleware(
     CORSMiddleware,
