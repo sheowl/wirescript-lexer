@@ -2,6 +2,16 @@
 
 WireScript is a Domain-Specific Language (DSL) for UI/UX Design that separates structure from fidelity. This repository contains the core Python logic for the WireScript Lexer.
 
+## Status: Complete (v0.1.0)
+
+The Lexer is fully implemented and verified.
+
+- **Indentation**: Whitespace-sensitive blocks.
+- **Identifiers**: Case-sensitive, Lazy Finalization for Noise words.
+- **Literals**: Integers, Floats, Strings (Single/Double Quoted).
+- **Comments**: Single (`#`) and Multi-line (`"""`).
+- **Operators**: Full suite including Layout Algebra (`|`, `^`, `>>`, `<<`).
+
 ## Development Setup
 
 ### 1. Prerequisites
