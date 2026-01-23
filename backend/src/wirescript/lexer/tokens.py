@@ -99,3 +99,11 @@ class Token:
     def __repr__(self):
         val_str = f", value={self.value!r}" if self.value is not None else ""
         return f"Token({self.type.name}{val_str}, line={self.line}, col={self.column})"
+
+    def to_dict(self):
+        return {
+            "type": self.type.name,
+            "value": self.value,
+            "line": self.line,
+            "column": self.column
+        }
