@@ -85,6 +85,8 @@ class TokenType(Enum):
     # --- Punctuators ---
     LPAREN = auto()      # (
     RPAREN = auto()      # )
+    LBRACE = auto()      # {
+    RBRACE = auto()      # }
     COMMA = auto()       # ,
     DOT = auto()         # .
     COLON = auto()       # :

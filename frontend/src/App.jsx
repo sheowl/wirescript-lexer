@@ -50,7 +50,7 @@ const LexicalAnalyzerApp = () => {
     if (type === 'INTEGER' || type === 'FLOAT') return 'Number';
     if (type === 'STRING') return 'String';
     if (type === 'BOOLEAN' || type === 'NULL') return 'Keyword';
-    if (type === 'LPAREN' || type === 'RPAREN' || type === 'COMMA' || type === 'DOT' || type === 'COLON') return 'Symbol';
+    if (type === 'LPAREN' || type === 'RPAREN' || type === 'LBRACE' || type === 'RBRACE' || type === 'COMMA' || type === 'DOT' || type === 'COLON') return 'Symbol';
     if (type === 'ERROR') return 'Error';
     if (type === 'NEWLINE' || type === 'INDENT' || type === 'DEDENT' || type === 'EOF') return 'Whitespace';
     return 'Unknown';
@@ -70,10 +70,9 @@ const LexicalAnalyzerApp = () => {
       }
   };
 
-  // API Call to Backend
   const analyzeCode = async (text) => {
     try {
-        const response = await fetch('http://127.0.0.1:8000/tokenize', {
+        const response = await fetch('/tokenize', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -135,39 +134,52 @@ const LexicalAnalyzerApp = () => {
     setTokens([]);
   };
 
+  const fileInputRef = useRef(null);
+
   const handleSave = () => {
     const blob = new Blob([inputCode], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'source_code.txt';
+    link.download = 'source_code.ws'; // Changed to .ws
     link.click();
     setIsDropdownOpen(false);
   };
 
-  const handleImport = () => {
-    const examples = [
-      `Component Header {
-  render(hifi);
-}`,
-      `Int count = 0;
-while (count < 10) {
-  count = count + 1;
-}`,
-      `Container Panel {
-  Boolean active = true;
-  if (active) {
-    render(lofi);
-  }
-}`
-    ];
-    const randomExample = examples[Math.floor(Math.random() * examples.length)];
-    setInputCode(randomExample);
+  const handleImportClick = () => {
+    fileInputRef.current.click();
     setIsDropdownOpen(false);
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (!file.name.endsWith('.ws') && !file.name.endsWith('.txt')) {
+        alert('Unsupported file format. Please upload a .ws or .txt file.');
+        event.target.value = ''; // Reset
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setInputCode(e.target.result);
+      };
+      reader.readAsText(file);
+    }
+    // Reset input so same file can be selected again
+    event.target.value = ''; 
   };
 
   return (
     <div className="flex flex-col h-screen bg-[#F5FBE6] text-slate-900 font-sans">
+      {/* Hidden File Input */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        accept=".ws,.txt" 
+        className="hidden" 
+      />
       {/* Header */}
       <header className="bg-[#F5FBE6]/90 backdrop-blur-md px-6 py-2 rounded-b-2xl flex justify-between items-center border-b border-[#FE7F2D]/20 animate-fadeInDown">
         <div className="flex items-center gap-3">
@@ -207,10 +219,10 @@ while (count < 10) {
                     <Save size={16} className="text-[#FE7F2D]" /> Save input
                   </button>
                   <button 
-                    onClick={handleImport}
+                    onClick={handleImportClick}
                     className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-[#FE7F2D]/10 flex items-center gap-2 transition-all"
                   >
-                    <Upload size={16} className="text-[#FE7F2D]" /> Import input
+                    <Upload size={16} className="text-[#FE7F2D]" /> Import input (.ws)
                   </button>
                 </div>
               )}

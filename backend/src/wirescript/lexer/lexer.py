@@ -120,7 +120,6 @@ class Lexer:
                 token, action = self._handle_identifier(char)
             elif self.state == LexerState.NUMBER: token, action = self._handle_number(char)
             elif self.state == LexerState.STRING_SINGLE: token, action = self._handle_string_single(char)
-            elif self.state == LexerState.STRING_SINGLE: token, action = self._handle_string_single(char)
             elif self.state == LexerState.STRING_DOUBLE: token, action = self._handle_string_double(char)
             elif self.state == LexerState.COMMENT_SINGLE: token, action = self._handle_comment_single(char)
             elif self.state == LexerState.COMMENT_MULTI: token, action = self._handle_comment_multi(char)
@@ -177,7 +176,7 @@ class Lexer:
             return Token(TokenType.NEWLINE, line=self.line, column=self.column), Action.CONSUME
             
         # Whitespace (skip)
-        if char in (' ', '\t'):
+        if char in (' ', '\t', '\r'):
             return None, Action.CONSUME
             
         # Operators (Phase 3)
@@ -195,6 +194,8 @@ class Lexer:
         if char == '%': self.state = LexerState.OP_MOD; return None, Action.CONSUME
         if char == '(': return Token(TokenType.LPAREN, line=self.line, column=self.column), Action.CONSUME
         if char == ')': return Token(TokenType.RPAREN, line=self.line, column=self.column), Action.CONSUME
+        if char == '{': return Token(TokenType.LBRACE, line=self.line, column=self.column), Action.CONSUME
+        if char == '}': return Token(TokenType.RBRACE, line=self.line, column=self.column), Action.CONSUME
         if char == ',': return Token(TokenType.COMMA, line=self.line, column=self.column), Action.CONSUME
         if char == '.': return Token(TokenType.DOT, line=self.line, column=self.column), Action.CONSUME
         if char == ':': return Token(TokenType.COLON, line=self.line, column=self.column), Action.CONSUME

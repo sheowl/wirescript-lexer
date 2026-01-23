@@ -1,60 +1,87 @@
-# WireScript Lexical Analyzer
+# WireScript Lexical Playground
 
-WireScript is a Domain-Specific Language (DSL) for UI/UX Design that separates structure from fidelity. This repository contains the core Python logic for the WireScript Lexer.
+This project is a full-stack implementation of the **WireScript** Domain-Specific Language (DSL) Lexer, featuring a Python backend and a React frontend for real-time visualization.
 
-## Status: Complete (v0.1.0)
+## Prerequisites
 
-The Lexer is fully implemented and verified.
+Before running the project, ensure you have the following installed:
 
-- **Indentation**: Whitespace-sensitive blocks.
-- **Identifiers**: Case-sensitive, Lazy Finalization for Noise words.
-- **Literals**: Integers, Floats, Strings (Single/Double Quoted).
-- **Comments**: Single (`#`) and Multi-line (`"""`).
-- **Operators**: Full suite including Layout Algebra (`|`, `^`, `>>`, `<<`).
+- **[Python 3.13+](https://www.python.org/downloads/)** (for Backend)
+- **[Node.js 22+ & npm](https://nodejs.org/en/download/)** (for Frontend)
+- **[Git](https://git-scm.com/downloads)** (for version control)
 
-## Development Setup
+## Project Structure
 
-### 1. Prerequisites
+- **`backend/`**: Contains the core Python implementation of the WireScript Lexer and a FastAPI server.
+- **`frontend/`**: A React application (Vite) that provides a web-based playground to type WireScript code and view tokenized output.
 
-- Python 3.13+
-- `pip` (Python Package Installer)
+## Getting Started
 
-### 2. Installation
+### Backend Setup (Python)
 
-Create a virtual environment and install the required dependencies.
+The backend exposes a REST API to tokenize code.
+
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+2. Create and activate a virtual environment:
+   ```bash
+   python -m venv .venv
+   # Windows:
+   .venv\Scripts\activate
+   # Mac/Linux:
+   source .venv/bin/activate
+   ```
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Run the API server:
+   ```bash
+   $env:PYTHONPATH='src'
+   uvicorn wirescript.server:app --reload
+   ```
+   The API will be available at `http://localhost:8000`.
+
+#### Running Tests (Lexer)
+
+To verify the Lexer logic:
 
 ```bash
-# Windows
-python -m venv .venv
-.venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### 3. Project Structure
-
-The project follows a standard `src`-layout:
-
-- `src/wirescript/`: Main package source code.
-- `src/wirescript/lexer/`: Lexer module containing Tokens and Logic.
-- `tests/`: Unit tests (pytest).
-- `docs/`: Design documents and specifications.
-
-## Running Tests
-
-We use `pytest` for testing. The project is configured with `pytest.ini` to handle imports automatically.
-
-```bash
-# Run all tests
 python -m pytest tests/
-
-# Run detailed output
-python -m pytest -v tests/
 ```
 
-## Contributing
+---
 
-1. Always create a new branch for features.
-2. Ensure `pytest` passes before pushing.
-3. Update `requirements.txt` if adding new dependencies.
+### Frontend Setup (React)
+
+The frontend interfaces with the backend to display results.
+
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+   The UI will be available at `http://localhost:5173`.
+
+## Features
+
+- **Indentation-Sensitive Lexing**: Handles Python-like meaningful whitespace.
+- **Real-time Tokenization**: See tokens instantly as you type.
+- **Detailed Token Output**: Visualizes token types, values, lines, and columns.
+- **Error Handling**: Displays lexical errors for invalid characters or structure.
+
+## Lexer Capabilities
+
+- **Keywords**: Control flow (`if`, `else`, `for`), System constants (`Screen`, `Component`).
+- **Layout Operators**: `|` (Horizontal), `^` (Vertical), `>>` (Nest).
+- **Literals**: Numbers, Strings, Booleans.
+- **Comments**: Single (`#`) and Multi-line (`"""`).
