@@ -8,12 +8,15 @@ from wirescript.lexer.tokens import TokenType
 app = FastAPI(title="WireScript Lexer API")
 
 # Allow CORS for Frontend integration
+import os
+origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow all for dev, restrict in prod
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
 
 class TokenResponse(BaseModel):

@@ -233,7 +233,6 @@ class Lexer:
             self.state = LexerState.COMMENT_SINGLE
             return None, Action.CONSUME
 
-        # TODO: any other symbols?
         # Detect unknown characters
         return Token(TokenType.ERROR, value=f"Unexpected character '{char}'", line=self.line, column=self.column), Action.CONSUME
 
@@ -249,8 +248,6 @@ class Lexer:
         if char == '.':
             # Check if we already have a dot
             if '.' in self.current_token_value:
-                # Two dots? 1.2.3 -> Split? Or Error?
-                # Spec doesn't say. Assuming split at second dot -> REPROCESS.
                 pass # Fall through to reprocess
             else:
                 self.current_token_value += char
@@ -258,7 +255,7 @@ class Lexer:
         
         # End of Number
         val_str = self.current_token_value
-        self.state = LexerState.START # <--- CRITICAL FIX: Reset state needed before REPROCESS
+        self.state = LexerState.START # Reset state needed before REPROCESS
         if '.' in val_str:
             # Float
             return Token(TokenType.FLOAT, value=float(val_str), line=self.line, column=self.column-len(val_str)), Action.REPROCESS
@@ -276,7 +273,6 @@ class Lexer:
             return Token(TokenType.STRING, value=val, line=self.line, column=self.column-len(val)-2), Action.CONSUME # -2 for quotes
         
         if char == '' or char == '\n':
-            # Error: Unclosed string at newline/EOF
             self.state = LexerState.START
             return Token(TokenType.ERROR, value="Unterminated string literal", line=self.line, column=self.column), Action.REPROCESS
 
@@ -320,19 +316,17 @@ class Lexer:
         
         # 2. Check Reserved Words
         if word in self.RESERVED_WORDS:
-            # Special case for true/false mapping to boolean value? 
-            # For now just token type.
             self.state = LexerState.START
             return Token(self.RESERVED_WORDS[word], value=word, line=self.line, column=self.column - len(word)), Action.REPROCESS
             
         # 3. Check Noise Words
         if word in self.NOISE_WORDS:
-            # IGNORE. Reset to START, REPROCESS the delimiter.
+            # Reset to START, REPROCESS the delimiter.
             # No token emitted.
             self.state = LexerState.START
             return None, Action.REPROCESS
             
-        # 4. It is an Identifier
+        # 4. Identifier
         self.state = LexerState.START
         return Token(TokenType.IDENTIFIER, value=word, line=self.line, column=self.column - len(word)), Action.REPROCESS
 
@@ -371,7 +365,7 @@ class Lexer:
             self.state = LexerState.START
             return Token(TokenType.OP_AND, line=self.line, column=self.column-1), Action.CONSUME
             
-        # Single & is not a valid operator in WireScript
+        # Single & is not a valid operator
         self.state = LexerState.START
         return None, Action.REPROCESS 
 
@@ -438,7 +432,6 @@ class Lexer:
         - Count spaces/tabs since newline.
         - Compare to self.indent_stack[-1].
         - Emit INDENT, DEDENT, or nothing.
-        - If DEDENT, we might need to emit multiple tokens (unwind stack).
         """
         # 1. Count Spaces (if not already done)
         if self.indent_level_found is None:
@@ -451,17 +444,16 @@ class Lexer:
                 self.advance()
                 curr = self.peek()
             
-            # Check if empty line (newline or EOF or comment?)
-            # If newline, it's an empty line -> ignore indent -> REPROCESS from top to consume it
+            # Check if empty line
+            # If newline, empty line -> ignore indent -> REPROCESS from top to consume it
             if curr == '\n':
                 # Empty line; reset to START to let main loop handle the newline
                 self.state = LexerState.START
                 return None, Action.REPROCESS
-                return None, Action.REPROCESS
                 
             if curr == '#':
                 # Comment line behaves like empty line
-                # We skip until newline
+                # Skip until newline
                 while curr != '\n' and curr != '':
                     self.advance()
                     curr = self.peek()
@@ -469,7 +461,7 @@ class Lexer:
                 return None, Action.REPROCESS
 
             if curr == '': 
-                 # EOF after spaces. behave as 0 indent?
+                 # EOF after spaces
                  indent_count = 0
 
             self.indent_level_found = indent_count
@@ -489,7 +481,6 @@ class Lexer:
         elif current_level < top:
             # Dedent
             self.indent_stack.pop()
-            # Determine if we need more dedents (stay in loop, keep indent_level_found)
             return Token(TokenType.DEDENT, line=self.line, column=self.column), Action.REPROCESS
             
         else:
@@ -504,7 +495,7 @@ class Lexer:
         """
         if char == '\n':
             self.state = LexerState.START
-            # Reprocess newline so it is handled by START state
+            # Reprocess newline to be handled by START state
             return None, Action.REPROCESS
             
         if char == '': # EOF

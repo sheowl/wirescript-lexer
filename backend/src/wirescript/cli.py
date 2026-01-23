@@ -27,7 +27,7 @@ def main():
                 break
             tokens.append(token.to_dict())
         except Exception as e:
-             # Fallback for unexpected crashe
+             # Fallback for unexpected crash
              sys.stderr.write(f"Lexer Error: {e}\n")
              sys.exit(1)
         

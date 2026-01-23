@@ -17,9 +17,6 @@ def test_single_char_ops():
     code = "+ - ( )"
     tokens = get_tokens(code)
     types = [t.type for t in tokens]
-    # Spaces are currently skipped in _handle_start? 
-    # Wait, simple spaces/tabs need to be skipped in START to avoid getting stuck or emitting garbage.
-    # We need to ensure we implement skipping whitespace in START first/concurrently.
     
     assert TokenType.OP_PLUS in types
     assert TokenType.OP_MINUS in types

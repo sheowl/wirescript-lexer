@@ -28,15 +28,6 @@ def test_floats():
     code = "3.14 0.5 10.0"
     tokens = get_tokens(code)
     
-    # We might reuse INTEGER tokens for numbers if generic, but TokenTypes has INTEGER.
-    # Spec doesn't explicitly listed FLOAT in tokens.py, only INTEGER.
-    # But examples show 0.5.
-    # Let's check tokens.py.
-    # If no FLOAT, we might need to add it or just use INTEGER for all numbers (bad idea).
-    # I'll check tokens.py content in a second. Assuming we need to add FLOAT.
-    
-    # Asserting types assuming I'll add FLOAT or use a generic NUMBER type.
-    # Existing tokens.py had INTEGER. I will likely need to add FLOAT.
     assert tokens[0].value == 3.14
     assert tokens[1].value == 0.5
 

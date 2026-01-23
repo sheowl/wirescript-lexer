@@ -65,9 +65,6 @@ def test_identifiers():
 def test_noise_words_skipped():
     """Test that 'create', 'make', 'with' are ignored."""
     code = "create String s" 
-    # Should be: RES_STRING, IDENTIFIER(s)
-    # 'create' is skipped.
-    
     tokens = get_tokens(code)
     types = [t.type for t in tokens]
     
@@ -76,21 +73,6 @@ def test_noise_words_skipped():
 
 def test_mixed_sentence():
     """Test a full declaration line."""
-    # create submit_btn = Button(label="Submit")
-    # For now we don't have Button as keyword, it's an ID.
-    # We don't have String literals implemented yet (Milestone 5?), 
-    # so "Submit" might fail or parse strange.
-    # Let's test what we have:
-    # make x = 10
-    # make -> skipped
-    # x -> ID
-    # = -> OP_ASSIGN
-    # 10 -> We don't have numbers yet? Or do we?
-    # Milestone 4 includes identifiers/words. Spec says "Digits" are chars.
-    # But this task is "Identifiers & Noise Words". 
-    # Numbers likely next or part of this.
-    # Let's stick to IDs for this test.
-    
     code = "make x = y"
     tokens = get_tokens(code)
     types = [t.type for t in tokens]

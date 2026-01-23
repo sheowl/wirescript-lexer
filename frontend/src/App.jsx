@@ -87,7 +87,10 @@ const LexicalAnalyzerApp = () => {
 
   const analyzeCode = async (text) => {
     try {
-        const response = await fetch('/tokenize', {
+        // Use Env Var for Prod, fallback to proxy for Dev
+        const apiUrl = import.meta.env.VITE_API_URL || '/tokenize';
+        
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

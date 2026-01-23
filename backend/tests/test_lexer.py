@@ -8,7 +8,6 @@ def test_lexer_initialization():
     assert lexer.pos == 0
     assert lexer.line == 1
     assert lexer.column == 1
-    # Check private state if needed, or just public interface
 
 def test_lexer_empty_eof():
     """Verify an empty string immediately returns EOF."""
