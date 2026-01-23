@@ -16,7 +16,8 @@ import {
   Moon,
   Sun,
   Plus,
-  Minus
+  Minus,
+  Braces // Added for the JSON icon
 } from 'lucide-react';
 
 const LexicalAnalyzerApp = () => {
@@ -24,11 +25,9 @@ const LexicalAnalyzerApp = () => {
   Int x = 10 + 5;
   render(hifi);
 }`);
-  const [viewMode, setViewMode] = useState('table'); // 'table' or 'code'
+  const [viewMode, setViewMode] = useState('table'); // 'table', 'code', or 'json'
   const [tokens, setTokens] = useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [fontSize, setFontSize] = useState(14);
   const dropdownRef = useRef(null);
 
   // Close dropdown when clicking outside
@@ -45,12 +44,12 @@ const LexicalAnalyzerApp = () => {
   // Map Backend TokenType to Frontend Categories
   const mapTokenType = (type) => {
     if (type.startsWith('KW_')) return 'Keyword';
-    if (type.startsWith('RES_')) return 'Keyword'; // Treat reserved words as keywords for now
+    if (type.startsWith('RES_')) return 'Keyword';
     if (type.startsWith('OP_')) return 'Operator';
     if (type === 'IDENTIFIER') return 'Identifier';
     if (type === 'INTEGER' || type === 'FLOAT') return 'Number';
     if (type === 'STRING') return 'String';
-    if (type === 'BOOLEAN' || type === 'NULL') return 'Keyword'; // Literal keywords
+    if (type === 'BOOLEAN' || type === 'NULL') return 'Keyword';
     if (type === 'LPAREN' || type === 'RPAREN' || type === 'COMMA' || type === 'DOT' || type === 'COLON') return 'Symbol';
     if (type === 'ERROR') return 'Error';
     if (type === 'NEWLINE' || type === 'INDENT' || type === 'DEDENT' || type === 'EOF') return 'Whitespace';
@@ -89,10 +88,9 @@ const LexicalAnalyzerApp = () => {
 
         const backendTokens = await response.json();
         
-        // Transform Backend Tokens to Frontend Format
         return backendTokens.map(t => ({
             line: t.line,
-            lexeme: t.value === null ? `<${t.type}>` : String(t.value), // Show type if value is null (e.g. NEWLINE)
+            lexeme: t.value === null ? `<${t.type}>` : String(t.value),
             attribute: mapTokenType(t.type),
             description: mapTokenDescription(t.type, t.value),
             rawType: t.type
@@ -100,8 +98,6 @@ const LexicalAnalyzerApp = () => {
 
     } catch (err) {
         console.error("API Error:", err);
-        // Fallback or Alert? 
-        // For now, return a single error token
         return [{
             line: 0,
             lexeme: "API ERROR",
@@ -120,20 +116,14 @@ const LexicalAnalyzerApp = () => {
     setTokens(results);
   };
 
-  // Tab Key Support
   const handleKeyDown = (e) => {
     if (e.key === 'Tab') {
       e.preventDefault();
       const start = e.target.selectionStart;
       const end = e.target.selectionEnd;
-      // Insert 2 spaces for tab
       const spaces = "  ";
       const newValue = inputCode.substring(0, start) + spaces + inputCode.substring(end);
       setInputCode(newValue);
-      
-      // Move cursor
-      // Need to use timeout or layout effect to set cursor after render? 
-      // Actually standard React formatting:
       setTimeout(() => {
           e.target.selectionStart = e.target.selectionEnd = start + 2;
       }, 0);
@@ -278,6 +268,13 @@ while (count < 10) {
               >
                 <Code size={14} /> Code Block
               </button>
+              {/* NEW JSON BUTTON */}
+              <button 
+                onClick={() => setViewMode('json')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${viewMode === 'json' ? 'bg-gradient-to-r from-[#FE7F2D] to-[#D96C1F] text-white shadow-md shadow-[#FE7F2D]/40' : 'text-slate-500 hover:bg-[#FE7F2D]/10'}`}
+              >
+                <Braces size={14} /> JSON
+              </button>
             </div>
           </div>
 
@@ -287,55 +284,74 @@ while (count < 10) {
                 <Play size={48} className="text-[#FE7F2D]/30 animate-bounce" />
                 <p className="text-sm font-medium animate-pulse">Click "Run Analysis" to view results</p>
               </div>
-            ) : viewMode === 'table' ? (
-              <table className="w-full text-left border-collapse">
-                <thead className="sticky top-0 bg-gradient-to-r from-[#F5FBE6] to-[#FE7F2D]/20 z-10">
-                  <tr className="text-[10px] uppercase text-[#233D4D] font-black border-b border-[#FE7F2D]/30 tracking-widest">
-                    <th className="py-3 px-4 border-r border-[#FE7F2D]/20 w-16 text-center">Line</th>
-                    <th className="py-3 px-4 border-r border-[#FE7F2D]/20">Token</th>
-                    <th className="py-3 px-4 border-r border-[#FE7F2D]/20">Attribute</th>
-                    <th className="py-3 px-4">Description</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tokens.map((token, idx) => (
-                    <tr key={idx} className="border-b border-[#FE7F2D]/20 hover:bg-[#FE7F2D]/10 transition-all duration-200 group animate-fadeInUp" style={{animationDelay: `${idx * 0.02}s`}}>
-                      <td className="py-3 px-4 text-center font-mono text-xs text-[#FE7F2D]/60 border-r border-[#FE7F2D]/20">
-                        {token.line}
-                      </td>
-                      <td className="py-3 px-4 font-mono text-sm border-r border-[#FE7F2D]/20">
-                        <span className="bg-white/80 group-hover:bg-white px-2 py-0.5 rounded text-[#233D4D] font-bold border border-[#FE7F2D]/30 shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:shadow-md">
-                          {token.lexeme}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 border-r border-[#FE7F2D]/20">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${getAttributeStyle(token.attribute)}`}>
-                          {token.attribute}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-xs text-slate-600 leading-relaxed italic">
-                        {token.description}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             ) : (
-              <div className="p-6">
-                 <div className="bg-[#233D4D] rounded-xl p-6 font-mono text-sm leading-relaxed text-slate-300 shadow-xl shadow-[#233D4D]/50 border border-[#FE7F2D]/30">
-                  {tokens.map((token, idx) => (
-                    <div key={idx} className="flex gap-4 mb-2 group hover:bg-[#FE7F2D]/10 p-1 rounded transition-colors">
-                      <span className="text-[#FE7F2D]/60 w-8 text-right select-none text-xs">L{token.line}</span>
-                      <div className="flex items-center gap-3">
-                        <span className={`font-bold ${getAttributeColor(token.attribute)}`}>
-                          &lt;{token.attribute}&gt;
-                        </span>
-                        <span className="text-slate-100">"{token.lexeme}"</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                <>
+                    {/* TABLE VIEW */}
+                    {viewMode === 'table' && (
+                        <table className="w-full text-left border-collapse">
+                            <thead className="sticky top-0 bg-gradient-to-r from-[#F5FBE6] to-[#FE7F2D]/20 z-10">
+                            <tr className="text-[10px] uppercase text-[#233D4D] font-black border-b border-[#FE7F2D]/30 tracking-widest">
+                                <th className="py-3 px-4 border-r border-[#FE7F2D]/20 w-16 text-center">Line</th>
+                                <th className="py-3 px-4 border-r border-[#FE7F2D]/20">Token</th>
+                                <th className="py-3 px-4 border-r border-[#FE7F2D]/20">Attribute</th>
+                                <th className="py-3 px-4">Description</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {tokens.map((token, idx) => (
+                                <tr key={idx} className="border-b border-[#FE7F2D]/20 hover:bg-[#FE7F2D]/10 transition-all duration-200 group animate-fadeInUp" style={{animationDelay: `${idx * 0.02}s`}}>
+                                <td className="py-3 px-4 text-center font-mono text-xs text-[#FE7F2D]/60 border-r border-[#FE7F2D]/20">
+                                    {token.line}
+                                </td>
+                                <td className="py-3 px-4 font-mono text-sm border-r border-[#FE7F2D]/20">
+                                    <span className="bg-white/80 group-hover:bg-white px-2 py-0.5 rounded text-[#233D4D] font-bold border border-[#FE7F2D]/30 shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:shadow-md">
+                                    {token.lexeme}
+                                    </span>
+                                </td>
+                                <td className="py-3 px-4 border-r border-[#FE7F2D]/20">
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${getAttributeStyle(token.attribute)}`}>
+                                    {token.attribute}
+                                    </span>
+                                </td>
+                                <td className="py-3 px-4 text-xs text-slate-600 leading-relaxed italic">
+                                    {token.description}
+                                </td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+                    )}
+
+                    {/* CODE BLOCK VIEW */}
+                    {viewMode === 'code' && (
+                        <div className="p-6">
+                            <div className="bg-[#233D4D] rounded-xl p-6 font-mono text-sm leading-relaxed text-slate-300 shadow-xl shadow-[#233D4D]/50 border border-[#FE7F2D]/30">
+                            {tokens.map((token, idx) => (
+                                <div key={idx} className="flex gap-4 mb-2 group hover:bg-[#FE7F2D]/10 p-1 rounded transition-colors">
+                                <span className="text-[#FE7F2D]/60 w-8 text-right select-none text-xs">L{token.line}</span>
+                                <div className="flex items-center gap-3">
+                                    <span className={`font-bold ${getAttributeColor(token.attribute)}`}>
+                                    &lt;{token.attribute}&gt;
+                                    </span>
+                                    <span className="text-slate-100">"{token.lexeme}"</span>
+                                </div>
+                                </div>
+                            ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* JSON VIEW (NEW) */}
+                    {viewMode === 'json' && (
+                        <div className="p-6 h-full">
+                             <div className="bg-[#233D4D] rounded-xl p-6 font-mono text-sm leading-relaxed text-slate-300 shadow-xl shadow-[#233D4D]/50 border border-[#FE7F2D]/30 h-full overflow-auto">
+                                <pre className="whitespace-pre-wrap break-words">
+                                    {JSON.stringify(tokens, null, 4)}
+                                </pre>
+                            </div>
+                        </div>
+                    )}
+                </>
             )}
           </div>
 
