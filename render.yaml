@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: wirescript-lexer
+    runtime: python
+    plan: free
+    buildCommand: "pip install uv && uv sync"
+    startCommand: "uv run uvicorn src.wirescript.server:app --host 0.0.0.0 --port $PORT"
+    rootDir: backend
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
