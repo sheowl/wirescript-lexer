@@ -42,88 +42,72 @@ const LexicalAnalyzerApp = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Updated Lexical Analyzer Logic: Line-by-Line Processing
-  const analyzeCode = (text) => {
-    if (!text.trim()) return [];
-    
-    const keywords = ['break', 'continue', 'elif', 'if', 'else', 'while', 'for', 'foreach', 'return', 'define', 'export', 'import', 'render', 'start', 'Boolean', 'Component', 'Container', 'Int', 'String', 'Screen', 'hifi', 'lofi', 'true', 'false', 'null'];
-    const operators = ['<<', '>>', '<=', '>=', '==', '!=', '&&', '||', '+', '-', '*', '/', '%', '=', '<', '>', '!', '|', '^'];
-    const symbols = ['(', ')', '{', '}', '[', ']', ';', ',', '.'];
-    
-    const tokenPatterns = [
-      { type: 'Whitespace', regex: /^\s+/ },
-      { type: 'Keyword', regex: new RegExp(`^(${keywords.join('|')})\\b`) },
-      { type: 'Identifier', regex: /^[a-zA-Z_][a-zA-Z0-9_]*/ },
-      { type: 'Number', regex: /^[0-9]+(\.[0-9]+)?/ },
-      { type: 'Operator', regex: new RegExp(`^(${operators.map(op => op.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`) },
-      { type: 'Symbol', regex: new RegExp(`^(${symbols.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`) },
-      { type: 'String', regex: /^"[^"]*"/ },
-    ];
-
-    const lines = text.split('\n');
-    let allTokens = [];
-
-    lines.forEach((lineText, index) => {
-      const lineNumber = index + 1;
-      let remaining = lineText;
-
-      while (remaining.length > 0) {
-        let match = null;
-        
-        for (let pattern of tokenPatterns) {
-          match = remaining.match(pattern.regex);
-          if (match) {
-            const lexeme = match[0];
-            if (pattern.type !== 'Whitespace') {
-              allTokens.push({
-                line: lineNumber,
-                lexeme,
-                attribute: pattern.type,
-                description: getExplanation(lexeme, pattern.type)
-              });
-            }
-            remaining = remaining.slice(lexeme.length);
-            break;
-          }
-        }
-
-        if (!match) {
-          // If the first character of "remaining" is just whitespace not caught by regex for some reason
-          if (/\s/.test(remaining[0])) {
-            remaining = remaining.slice(1);
-            continue;
-          }
-          
-          allTokens.push({
-            line: lineNumber,
-            lexeme: remaining[0],
-            attribute: 'Error',
-            description: `Character '${remaining[0]}' is unrecognized in this language's alphabet.`
-          });
-          remaining = remaining.slice(1);
-        }
-      }
-    });
-
-    return allTokens;
+  // Map Backend TokenType to Frontend Categories
+  const mapTokenType = (type) => {
+    if (type.startsWith('KW_')) return 'Keyword';
+    if (type.startsWith('RES_')) return 'Keyword'; // Treat reserved words as keywords for now
+    if (type.startsWith('OP_')) return 'Operator';
+    if (type === 'IDENTIFIER') return 'Identifier';
+    if (type === 'INTEGER' || type === 'FLOAT') return 'Number';
+    if (type === 'STRING') return 'String';
+    if (type === 'BOOLEAN' || type === 'NULL') return 'Keyword'; // Literal keywords
+    if (type === 'LPAREN' || type === 'RPAREN' || type === 'COMMA' || type === 'DOT' || type === 'COLON') return 'Symbol';
+    if (type === 'ERROR') return 'Error';
+    if (type === 'NEWLINE' || type === 'INDENT' || type === 'DEDENT' || type === 'EOF') return 'Whitespace';
+    return 'Unknown';
   };
 
-  const getExplanation = (lexeme, type) => {
-    switch (type) {
-      case 'Keyword':
-        return `Reserved word used for declaration or control.`;
-      case 'Identifier':
-        return `Name given to a variable, function, or object.`;
-      case 'Number':
-        return `Constant numeric value (literal).`;
-      case 'Operator':
-        return `Instruction for a mathematical or logical operation.`;
-      case 'Symbol':
-        return `Structural delimiter or punctuation mark.`;
-      case 'String':
-        return `Literal sequence of characters.`;
-      default:
-        return `Standard lexical unit identified by the scanner.`;
+  const mapTokenDescription = (type, value) => {
+      switch (mapTokenType(type)) {
+          case 'Keyword': return `Reserved word '${value || type}'`;
+          case 'Identifier': return `User-defined name '${value}'`;
+          case 'Number': return `Numeric literal`;
+          case 'String': return `String literal`;
+          case 'Operator': return `Operator '${value || type}'`;
+          case 'Symbol': return `Punctuator`;
+          case 'Whitespace': return `Structural element (${type})`;
+          case 'Error': return `Lexical Error`;
+          default: return '';
+      }
+  };
+
+  // API Call to Backend
+  const analyzeCode = async (text) => {
+    try {
+        const response = await fetch('http://127.0.0.1:8000/tokenize', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ code: text }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Analysis failed');
+        }
+
+        const backendTokens = await response.json();
+        
+        // Transform Backend Tokens to Frontend Format
+        return backendTokens.map(t => ({
+            line: t.line,
+            lexeme: t.value === null ? `<${t.type}>` : String(t.value), // Show type if value is null (e.g. NEWLINE)
+            attribute: mapTokenType(t.type),
+            description: mapTokenDescription(t.type, t.value),
+            rawType: t.type
+        }));
+
+    } catch (err) {
+        console.error("API Error:", err);
+        // Fallback or Alert? 
+        // For now, return a single error token
+        return [{
+            line: 0,
+            lexeme: "API ERROR",
+            attribute: "Error",
+            description: String(err)
+        }];
     }
   };
 
@@ -131,8 +115,29 @@ const LexicalAnalyzerApp = () => {
     handleRun();
   }, []);
 
-  const handleRun = () => {
-    setTokens(analyzeCode(inputCode));
+  const handleRun = async () => {
+    const results = await analyzeCode(inputCode);
+    setTokens(results);
+  };
+
+  // Tab Key Support
+  const handleKeyDown = (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = e.target.selectionStart;
+      const end = e.target.selectionEnd;
+      // Insert 2 spaces for tab
+      const spaces = "  ";
+      const newValue = inputCode.substring(0, start) + spaces + inputCode.substring(end);
+      setInputCode(newValue);
+      
+      // Move cursor
+      // Need to use timeout or layout effect to set cursor after render? 
+      // Actually standard React formatting:
+      setTimeout(() => {
+          e.target.selectionStart = e.target.selectionEnd = start + 2;
+      }, 0);
+    }
   };
 
   const handleClear = () => {
@@ -231,6 +236,7 @@ while (count < 10) {
              <textarea
               value={inputCode}
               onChange={(e) => setInputCode(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="w-full h-full pl-16 pr-6 pt-6 pb-6 resize-none focus:outline-none bg-transparent leading-relaxed"
               placeholder="Enter source code here..."
               spellCheck="false"
